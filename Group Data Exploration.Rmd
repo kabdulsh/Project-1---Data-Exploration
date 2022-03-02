@@ -1,0 +1,135 @@
+---
+title: "Group Data Exploration"
+author: "Khalid Abdulshafi"
+date: "1/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(echo = TRUE)
+  # install packages
+  library(ggplot2)
+  library(dplyr)
+  library(lubridate)
+  # set strings as factors to false
+  options(stringsAsFactors = FALSE)
+```
+
+```{r, include=FALSE}
+  # Initial load-in of the data and observations. 
+  lng <- read.csv("ProjectA_Listings2013.csv")
+  str(lng)
+  summary(lng)
+```
+
+```{r, include=FALSE}
+# Data Cleaning
+
+# Remove irrelevant observations (e.g. number_of_days, loan_status_description)
+
+lng$number_of_days <- NULL
+lng$loan_status_description <- NULL
+
+#Step 2: Fix structural errors (e.g. loan_origination_date)
+
+lng$loan_origination_date <- as.factor(lng$loan_origination_date)
+# define original format of date
+initial_format<-strptime(lng$loan_origination_date,format="%m/%d/%Y")
+# define desired format of date
+lng$loan_origination_date<-as.Date(initial_format,format="%m/%d/%Y")
+
+# Factor categorical variables
+lng$loan_status <- as.factor(lng$loan_status)
+lng$prosper_rating <- as.factor(lng$prosper_rating)
+lng$scorex <- as.factor(lng$scorex)
+
+lng$prosper_score <- as.factor(lng$prosper_score)
+
+lng$listing_category_id <- as.factor(lng$listing_category_id)
+
+lng$income_range <- as.factor(lng$income_range)
+lng$income_range_description <- NULL
+lng$employment_status_description <- as.factor(lng$employment_status_description)
+lng$occupation <- as.factor(lng$occupation)
+lng$borrower_state <- as.factor(lng$borrower_state)
+lng$borrower_city <- as.factor(lng$borrower_city)
+lng$lender_indicator <- as.factor(lng$lender_indicator)
+```
+
+```{r, include=FALSE}
+ # Lender indicator: Segment by FALSE to get borrowers
+  borrowers <- subset(lng, lng$lender_indicator == 0)
+```
+
+```{r}
+plot(borrowers$loan_status, borrowers$principal_balance, xlab="Loan Status", ylab="Principal Balance")
+```
+
+- Debtors who charged off their loan had the highest principal balance.
+
+```{r}
+category_weekday <- weekdays(borrowers$loan_origination_date)
+weekday_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+ggplot(data = borrowers, aes(x=factor(category_weekday, level = weekday_order), fill = loan_status)) + geom_bar(stat="count", position = "fill") + labs(title = "Title") + labs(x="Weekday", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+
+category_month <- months(borrowers$loan_origination_date)
+month_order <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+ggplot(data = borrowers, aes(x=factor(category_month, level = month_order), fill = loan_status)) + geom_bar(stat="count", position = "fill") + labs(title = "Title") + labs(x="Month", y = "Percentage")+ scale_y_continuous(labels = scales::percent) + theme(axis.text.x = element_text(angle = 90,hjust =0 ))
+
+category_quarter <- quarter(borrowers$loan_origination_date)
+ggplot(data = borrowers, aes(x=category_quarter, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="Quarter", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+-    The day of the week made no difference in the amount of debtors charging off or defaulting on their loan.
+
+- The first 6 months (i.e. the first two quarters) displayed the most debtors charging off or defaulting on their loan.
+
+```{r}
+plot(borrowers$loan_status, borrowers$amount_funded, xlab="Loan Status", ylab="Amount Funded")
+```
+
+- The amount funded to debtors made no difference in the amount of debtors charging off or defaulting on their loan.
+
+```{r}
+ggplot(borrowers, aes(x=prosper_rating, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="Prosper Rating", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+-   The worse the Prosper rating, the more instances of debtors charging off or defaulting on their loan were observed.
+
+```{r}
+plot(borrowers$loan_status, borrowers$borrower_rate, xlab="Loan Status", ylab="Borrower Rate")
+```
+
+-   The debtors with higher interest rates charged off or defaulted on their loan more often than debtors who are either currently paying off their loan or have already paid off their loan.
+
+```{r}
+# Factor listing term
+borrowers$listing_term <- as.factor(borrowers$listing_term)
+ggplot(borrowers, aes(x=listing_term, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="Term (X-month)", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+-   With a 12-term loan, debtors charged off or defaulted on their loan less than a 36-term or 60-month term loan.
+
+```{r}
+plot(borrowers$loan_status, borrowers$listing_monthly_payment, xlab="Loan Status", ylab="Monthly Payment")
+```
+
+- The monthly payment for debtors made no difference in the amount of debtors charging off or defaulting on their loan.
+
+```{r}
+ggplot(borrowers, aes(x=scorex, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="ScoreX Score", y = "Percentage")+ scale_y_continuous(labels = scales::percent) + theme(axis.text.x = element_text(angle = 90,hjust =0 ))
+```
+
+- Debtors with a ScoreX Score in the 600 range charged off or defaulted on their loan more often than debtors with a ScoreX Score in the 700 range or above.
+
+```{r}
+ggplot(borrowers, aes(x=prosper_score, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="Prosper Score (11 being the best)", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+-   Debtors with lower Prosper scores charged off or defaulted on their loans more often than debtors with higher Prosper scores.
+
+```{r}
+ggplot(borrowers, aes(x=listing_category_id, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(title = "Title") + labs(x="Category", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+- Debtors who took out a loan to pay for an RV defaulted on their loan more so than any other category.

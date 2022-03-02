@@ -1,0 +1,93 @@
+---
+title: 'Project #1 - Data Exploration'
+author: "Khalid Abdulshafi"
+date: "1/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(scales)
+```
+
+```{r}
+pro <- read.csv("ProjectA_Listings2013.csv")
+```
+
+```{r}
+#Check is NA values in loan_status
+any(is.na(pro$loan_status))
+
+```
+
+```{r}
+str(pro)
+summary(pro)
+```
+
+```{r}
+#factor categorical variables
+pro$loan_status <- as.factor(pro$loan_status)
+pro$loan_origination_date <- as.factor(pro$loan_origination_date)
+pro$prosper_rating <- as.factor(pro$prosper_rating)
+pro$listing_term <- as.factor(pro$listing_term)
+pro$scorex <- as.factor(pro$scorex)
+pro$prosper_score <- as.factor(pro$prosper_score)
+pro$income_range <- as.factor(pro$income_range)
+pro$income_verifiable <- as.factor(pro$income_verifiable)
+pro$employment_status_description <- as.factor(pro$employment_status_description)
+pro$occupation <- as.factor(pro$occupation)
+pro$borrower_state <- as.factor(pro$borrower_state)
+pro$borrower_city <- as.factor(pro$borrower_city)
+pro$lender_indicator <- as.factor(pro$lender_indicator)
+pro$is_homeowner <- as.factor(pro$is_homeowner)
+```
+
+```{r}
+#delete columns
+pro$loan_status_description <- NULL
+pro$income_range_description <- NULL
+pro$listing_category_id <- NULL
+```
+
+```{r}
+#We want to take a closer look at borrowers, not lenders
+borrower_subset <- subset(pro, pro$lender_indicator == 0)
+str(borrower_subset)
+summary(borrower_subset)
+```
+
+```{r}
+mean_num_yrs <- round(mean(borrower_subset$number_of_days)/365)
+
+rel_frq_loan_status <- table(borrower_subset$loan_status)/length(borrower_subset$loan_status)
+
+mean_num_days_vs_list_term <- tapply(borrower_subset$number_of_days, borrower_subset$listing_term, mean, na.rm = TRUE)
+```
+
+## Key Takeaways
+
+-   It takes an average of `r round(mean_num_days_vs_list_term[1]/365)` years to pay off a 1-year loan, `r round(mean_num_days_vs_list_term[2]/365)` for a 3-year loan, and `r round(mean_num_days_vs_list_term[3]/365)` for 5-year loan.
+-   `r percent(rel_frq_loan_status[1])` of the loans are currently active, `r percent(rel_frq_loan_status[2])` have been charged off, `r percent(rel_frq_loan_status[3])` have been defaulted on, and `r percent(rel_frq_loan_status[4])` have been paid off. 
+-   The average loan extended to borrowers is `r round(mean(borrower_subset$amount_funded, scientific = FALSE))`.
+- The average personal loan interest rate is `r round(mean(borrower_subset$borrower_rate))`%.
+-   Debtors come from 48 states and 6531 cities.
+
+## Grouped Analysis
+```{r}
+# is_homeowner vs laon status
+# income verifiable vs loan status
+# employment status vs laon status
+# income range vs loan status
+# prosper rating vs loan status
+# scorex vs loan status
+# borrower state vs loan status
+```
+
+## Including Plots
+```{r}
+
+```
+
+## Questions
+-   Why do borrowers take an average of 3 years to pay off a 1-year loan?

@@ -1,0 +1,316 @@
+---
+title: "Project #1 - Final Draft"
+author: "Team 1: Khalid Abdulshafi, Cecilia Chen, Micah Duwell, Reed Herndon, Grant Sobczak"
+date: "1/30/2022"
+output:
+  html_document: 
+    toc: true
+    toc_float: true
+    code_folding: hide 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(echo = TRUE)
+# install packages
+  library(ggplot2)
+  library(dplyr)
+  library(lubridate)
+  # set strings as factors to false
+  options(stringsAsFactors = FALSE)
+```
+
+# Data Import and Cleaning
+```{r}
+  # Initial load-in of the data and observations. 
+  lng <- read.csv("ProjectA_Listings2013.csv")
+  str(lng)
+  summary(lng)
+```
+
+```{r}
+  # Data cleaning
+  lng$loan_status <- as.factor(lng$loan_status)
+
+  lng$prosper_rating <- as.factor(lng$prosper_rating)
+  
+  # Make it easier to access by date
+  lng$loan_origination_date <- as.factor(lng$loan_origination_date)
+# define original format of date
+initial_format<-strptime(lng$loan_origination_date,format="%m/%d/%Y")
+# define desired format of date
+lng$loan_origination_date<-as.Date(initial_format,format="%m/%d/%Y")
+
+  lng$scorex <- as.factor(lng$scorex)
+  lng$prosper_score <- as.factor(lng$prosper_score)
+  lng$listing_category_id <- as.factor(lng$listing_category_id)
+  lng$income_range <- as.factor(lng$income_range)
+
+  lng$employment_status_description <- as.factor(lng$employment_status_description)
+  lng$occupation <- as.factor(lng$occupation)
+  lng$borrower_state <- as.factor(lng$borrower_state)
+  lng$borrower_city <- as.factor(lng$borrower_city)
+  lng$lender_indicator <- as.factor(lng$lender_indicator)
+```
+
+```{r}
+ # Lender indicator: Segment by FALSE to get borrowers
+  borrowers <- subset(lng, lng$lender_indicator == 0)
+```
+
+> In the original dataset, the majority of data is for borrowers. There is not much data for lenders to draw any solid conclusion. Therefore, in the following analysis, we will focus on the borrowers.
+> There are `r nrow(lng)` total rows in this dataset, but only `r nrow(borrowers)` borrowers. 
+
+# Data Analysis
+
+## Principal Balance
+```{r}
+plot(borrowers$loan_status, borrowers$principal_balance, xlab="Loan Status", ylab="Principal Balance")
+```
+
+> Debtors who charged off their loan had the highest principal balance.
+
+## Loan Origination Date
+```{r}
+category_weekday <- weekdays(borrowers$loan_origination_date)
+weekday_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+ggplot(data = borrowers, aes(x=factor(category_weekday, level = weekday_order), fill = loan_status)) + geom_bar(stat="count", position = "fill") + labs(x="Weekday", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+
+category_month <- months(borrowers$loan_origination_date)
+month_order <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+ggplot(data = borrowers, aes(x=factor(category_month, level = month_order), fill = loan_status)) + geom_bar(stat="count", position = "fill") + labs(x="Month", y = "Percentage")+ scale_y_continuous(labels = scales::percent) + theme(axis.text.x = element_text(angle = 90,hjust =0 ))
+
+category_quarter <- quarter(borrowers$loan_origination_date)
+ggplot(data = borrowers, aes(x=category_quarter, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="Quarter", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+> The day of the week made no difference in the amount of debtors charging off or defaulting on their loan.
+
+> The first 6 months of the year (i.e. the first two quarters) displayed the most debtors charging off or defaulting on their loan.
+
+## Amount Funded
+```{r}
+plot(borrowers$loan_status, borrowers$amount_funded, xlab="Loan Status", ylab="Amount Funded")
+```
+
+> The amount funded to debtors made no difference in the amount of debtors charging off or defaulting on their loan.
+
+## Prosper Rating
+```{r}
+ggplot(borrowers, aes(x=prosper_rating, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="Prosper Rating", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+> The worse the Prosper rating, the more instances of debtors charging off or defaulting on their loan were observed.
+
+## Interest Rate
+```{r}
+plot(borrowers$loan_status, borrowers$borrower_rate, xlab="Loan Status", ylab="Borrower Rate")
+```
+
+> The debtors with higher interest rates charged off or defaulted on their loan more often than debtors who are either currently paying off their loan or have already paid off their loan.
+
+## Loan Terms
+```{r}
+# Factor listing term
+borrowers$listing_term <- as.factor(borrowers$listing_term)
+ggplot(borrowers, aes(x=listing_term, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="Term (X-month)", y = "Percentage")+ scale_y_continuous(labels = scales::percent)
+```
+
+> With a 12-term loan, debtors charged off or defaulted on their loan less than a 36-term or 60-month term loan.
+
+## Monthly Payments
+```{r}
+plot(borrowers$loan_status, borrowers$listing_monthly_payment, xlab="Loan Status", ylab="Monthly Payment")
+```
+
+> The monthly payment for debtors made no difference in the amount of debtors charging off or defaulting on their loan.
+
+## ScoreX Scores
+```{r}
+ggplot(borrowers, aes(x=scorex, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="ScoreX Score", y = "Percentage")+ scale_y_continuous(labels = scales::percent) + theme(axis.text.x = element_text(angle = 90,hjust =0 ))
+```
+
+> Debtors with a ScoreX Score in the 600 range charged off or defaulted on their loan more often than debtors with a ScoreX Score in the 700 range or above.
+
+## Prosper Score
+```{r}
+ggplot(borrowers, aes(x=prosper_score, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="Prosper Score (11 being the best)", y = "Percentage")+ scale_y_continuous(labels = scales::percent) + coord_cartesian(xlim = c(2.1, 11)) 
+```
+
+> Debtors with lower Prosper scores charged off or defaulted on their loans more often than debtors with higher Prosper scores.
+
+```{r}
+ggplot(borrowers, aes(x=listing_category_id, fill = loan_status)) + geom_bar(stat = "count", position = "fill") + labs(x="Category", y = "Percentage")+ scale_y_continuous(labels = scales::percent) 
+```
+
+> Debtors who took out a loan to pay for an RV defaulted on their loan the most in comparison to debtors in other categories.
+
+## Income Range
+
+```{r}
+lenders <- subset(lng, lng$lender_indicator == 1)
+
+library(ggplot2)
+library(lubridate)
+
+ggplot(borrowers) + geom_bar(aes(x=income_range_description, y=(..count..)/sum(..count..)), fill="lavender") + theme_bw() + xlab("Income Range") + ylab("Percentage") + ggtitle("Borrowers' Income Range") + scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
+
+> This histogram shows that in the dataset, around 4% of borrowers have their income falling between $10,000 to $24,999, 26% between $25,000 to $ 49,999, 32% between $50,000 to $74,999, 18% between $75,000 to $99,999, and 19% more than $100,000.
+
+```{r}
+ggplot(data=borrowers[borrowers$loan_status =="3",]) + geom_bar(aes(x=income_range_description, y=(..count..)/sum(..count..)),fill="lavender") + theme_bw() + xlab("Income Range") + ylab("Percentage") + ggtitle("Borrowers' Income Range with Defaulted Loan") + scale_y_continuous(labels = scales::percent)
+```
+
+> Borrowers with an income range from $25,000 to $49,999 are most likely to default on their loans. There is not much difference in possibility to default among borrowers with income of $100,000+ and $75,000-99,999.
+
+```{r}
+ggplot(data=borrowers[borrowers$loan_status =="4",]) + geom_bar(aes(x=income_range_description, y=(..count..)/sum(..count..)), fill="lavender") + theme_bw() + xlab("Income Range") + ylab("Percentage") + ggtitle("Borrowers' Income Range with Completed Loan") + scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
+
+> Borrowers with an income range from $50,000 to $74,999 are most likely to complete their loans. Borrowers with income of $25,000-49,999 are more likely to complete loans than borrowers with income of $75,000-99,999.
+
+```{r}
+ggplot(data=borrowers[borrowers$income_range_description!="$0",], aes(x=income_range_description, y = loan_status_description, colour=income_range_description)) + geom_jitter(alpha = 0.25) + xlab("Income Range") + ylab("Loan Status") + ggtitle("Loan Status by Borrowers' Income Range") + theme(axis.text.x = element_text(angle = 45))
+```
+
+> Generally speaking, borrowers with income more than $25,000 are more likely to complete their loans than those income falling under $25,000.
+
+
+## Segment Borrowers by Loan Status 
+
+```{r}
+  # Analysis $real_estate_payment to $is_homeowner
+
+  # Initial exploration
+  revolvingBalanceSegmented <- tapply(borrowers$revolving_balance, borrowers$loan_status, median, na.rm=TRUE)
+  revolvingBalanceSegmented
+  # The middle 50% of Current borrowers' revolving credit balances is the highest, while the middle 50% of Complete borrowers is the lowest.
+  realEstateBalanceSegmented <- tapply(borrowers$real_estate_balance, borrowers$loan_status, median, na.rm=TRUE)
+  realEstateBalanceSegmented
+  # The median real estate balance for Charge-Off and Delinquent borrowers is zero. 
+  
+  # Segment borrowers based on loan status
+  # (1) Current
+  status1 <- subset(borrowers, borrowers$loan_status == 1)
+  status1Count <- nrow(status1)
+  # (2) Charge-off
+  status2 <- subset(borrowers, borrowers$loan_status == 2)
+  status2Count <- nrow(status2)
+  # (3) Defaulted
+  status3 <- subset(borrowers, borrowers$loan_status == 3)
+  status3Count <- nrow(status3)
+  # (4) Completed
+  status4 <- subset(borrowers, borrowers$loan_status == 4)
+  status4Count <- nrow(status4)
+```
+
+### Test a Hypothesis
+> Do good borrowers and bad borrowers own homes at the same rate?
+> A good borrower is defined as someone who is Current or Complete. A bad borrower is someone who is Charge-Off or Defaulted.
+
+```{r}
+  # Find the sample proportion of Loan Status 1 and Loan Status 4 borrowers ("Good borrowers") who own a home.
+  homeowners1 <- subset(status1, status1$is_homeowner==TRUE)
+  homeowners4 <- subset(status4, status4$is_homeowner==TRUE)
+  countGood <- status1Count + status4Count
+  countHomeG <- nrow(homeowners1) + nrow(homeowners4)
+  propGood <- countHomeG/countGood
+  
+  # Find the sample proportion of Loan Status 2 and Loan Status 3 borrowers ("Bad borrowers") who own a home.
+  homeowners2 <- subset(status2, status2$is_homeowner==TRUE)
+  homeowners3 <- subset(status3, status3$is_homeowner==TRUE)
+  countBad <- status2Count + status3Count
+  countHomeB <- nrow(homeowners2) + nrow(homeowners3)
+  propBad <- countHomeB/countBad
+  
+  # Two-proportion z-test
+  # Ho: Pgood = Pbad || Ha: Pgood != Pbad
+  sigLvl <- 0.05
+
+  # Pooled sample proportion
+  totalCount <- countGood + countBad
+  propPooled <- (propGood*countGood + propBad*countBad) / totalCount 
+  propPooled
+  
+  # Compute standard error
+  se <- sqrt(propPooled * (1-propPooled) * ((1/countGood) + (1/countBad)))
+  se
+  
+  # Test statistic
+  zScore <- (propGood - propBad)/se
+  zScore
+  
+  pValue <- 1-pnorm(zScore)
+  
+  result <- "The difference of sample proportions for good borrowers who are homeowners and bad borrowers who are owners is NOT statistically significant."
+  if(pValue <= sigLvl) {
+    result <- "The difference of sample proportions for good borrowers who are homeowners and bad borrowers who are owners is statistically significant."
+  }
+  result
+
+```
+
+> Based on the hypothesis test, this data set shows that good borrowers and bad borrowers do NOT own homes at the same rate. A good borrower is more likely to own a home compared to a bad borrower. For instance, good borrowers own homes `r round(propGood * 100, 1)`% of the time, while bad borrowers own homes `r round(propBad*100,1)`% of the time. We found this difference statistically significant at a p-value of `r pValue`.
+
+## Graph Average Delinquencies by Loan Status
+```{r}
+  # Find the average number of delinquencies over 30, 60, and 90 days for Current borrowers. 
+  s1del30 <- mean(status1$delinquencies_over30_days)
+  s1del60 <- mean(status1$delinquencies_over60_days)
+  s1del90 <- mean(status1$delinquencies_over90_days)
+  # Find the average number of delinquencies over 30, 60, and 90 days for Charge-Off borrowers. 
+  s2del30 <- mean(status2$delinquencies_over30_days)
+  s2del60 <- mean(status2$delinquencies_over60_days)
+  s2del90 <- mean(status2$delinquencies_over90_days)
+  # Find the average number of delinquencies over 30, 60, and 90 days for Defaulted borrowers. 
+  s3del30 <- mean(status3$delinquencies_over30_days)
+  s3del60 <- mean(status3$delinquencies_over60_days)
+  s3del90 <- mean(status3$delinquencies_over90_days)
+  # Find the average number of delinquencies over 30, 60, and 90 days for Completed borrowers.   
+  s4del30 <- mean(status4$delinquencies_over30_days)
+  s4del60 <- mean(status4$delinquencies_over60_days)
+  s4del90 <- mean(status4$delinquencies_over90_days)
+  
+  # Set up the vector to plot >30 days delinquent
+  del30 <- c(s1del30, s2del30, s3del30, s4del30)
+  del30Max <- max(del30) + 1.5
+  # Set up the vector to plot >60 days delinquent
+  del60 <- c(s1del60, s2del60, s3del60, s4del60)
+  del60Max <- max(del60) + 1.5
+  # Set up the vector to plot >90 days delinquent
+  del90 <- c(s1del90, s2del90, s3del90, s4del90)
+  del90Max <- max(del90) + 1.5
+  
+  barplot(del30, ylim = c(0, del30Max), main = "> 30 Days Delinquencies", xlab = "Loan Status", 
+          ylab = "Average Number of Delinquencies over 30 Days", names.arg = c("Current", "Charge-Off", "Defaulted", "Completed")) 
+
+  barplot(del60, ylim = c(0, del60Max), main = "> 60 Days Delinquencies", xlab = "Loan Status", 
+          ylab = "Average Number of Delinquencies over 60 Days", names.arg = c("Current", "Charge-Off", "Defaulted", "Completed")) 
+    
+  barplot(del90, ylim = c(0, del90Max), main = "> 90 Days Delinquencies", xlab = "Loan Status", 
+          ylab = "Average Number of Delinquencies over 90 Days", names.arg = c("Current", "Charge-Off", "Defaulted", "Completed")) 
+
+```
+
+> For the first chart, we see the average number of delinquencies over thirty days by loan status. It seems that all categories of borrowers had roughly the same average number of deliquencies over thirty days, about 3.2 delinquencies. As far as the second chart, delinquencies are lower in absolute terms (roughly half of the first chart values). We observe that Charge-Off and Completed borrowers accounted for higher mean delinquencies over sixty days. The same is true for over ninty days. It is likely that the set "> 60 days" also contains many of the same values as ">90 days" which explains the similarity in their summary statistics. 
+
+
+## Delinquencies
+```{r}
+tapply(lng$delinquencies_last7_years, lng$loan_status, mean, na.rm=TRUE)
+```
+> Possible explanations for why completed loans have more defaults than any other loan status could be a factor of time and/or experience with loans. Especially since the vast majority of the loans were used for debt consolidation.
+> It is still surprising that default and charge-off loans didn't have a higher average default than the actual defaults but perhaps that is a personal bias/expectation.
+
+
+# Conclusion
+
+- Borrowers with an income range from $25,000 to $49,999 are most likely to default on their loans.
+- Borrowers with an income range from $50,000 to $74,999 are most likely to complete their loans.
+- We observed that quote-unquote "good borrowers" (i.e. those who have status Current or Complete) own homes at a statistically significantly higher rate than "bad borrowers" (i.e. those who are of status Charge-off or Defaulted).
+- We also observed no material different in average deliquencies amongst loan status groups for >30 days. However, we did observe a higher mean deliquency count for Charge-off and Completed borrowers within the >60 days and >90 days categories. It is likely that these buckets are related and that >90 days is also driving >60 days and explains the similarity in their summary statistics.
+- Completed loans have more defaults than any other loan status since the vast majority of the loans were used for debt consolidation.
+- Default and charge-off loans didn't have a higher average default than the actual defaults.
+- 
+
